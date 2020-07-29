@@ -1,0 +1,11 @@
+{
+    "players": [
+        {
+            "id": 0,
+            "cookie": null,
+            "username": null,
+            "cards": [ null ],
+            "admin": true
+        }
+    ]
+}

@@ -124,11 +124,8 @@ class Game extends Room {
             if ($value->cookie == $_COOKIE['player']) {
                 unset($value->cards[array_search($cardnameSplit, $value->cards)]);
                 $this->players[$key]->cards = array_values($value->cards);
-                $ret = true;
+                return $this->updateTurnDB($cardname);
             }
-        }
-        if ($ret) {
-            return $this->updateTurnDB($cardname);
         }
     }
 
@@ -158,30 +155,18 @@ class Game extends Room {
         &&  count($this->deck['joker']) == 0) {
             $this->reShuffle();
         }
-        $rand = 12;
-        if ($playerid == 9) {
-            $rand = 11;
-        }
-        $stack = rand(0, $rand);
+        $playerid == 9 ? $stack = rand(0, 11) : $stack = rand(0, 12);
         switch ($stack) {
-            case 0:
-            case 1:
-            case 2:
+            case filter_var($rand, FILTER_VALIDATE_INT, ['options' => ['min_range' => '0', 'max_range' => '2']]):
                 $stack = 'red';
                 break;
-            case 3:
-            case 4:
-            case 5:
+            case filter_var($rand, FILTER_VALIDATE_INT, ['options' => ['min_range' => '3', 'max_range' => '5']]):
                 $stack = 'blue';
-                break;  
-            case 6:
-            case 7:
-            case 8:
+                break;
+            case filter_var($rand, FILTER_VALIDATE_INT, ['options' => ['min_range' => '6', 'max_range' => '8']]):
                 $stack = 'yellow';
                 break;  
-            case 9:
-            case 10:
-            case 11:
+            case filter_var($rand, FILTER_VALIDATE_INT, ['options' => ['min_range' => '9', 'max_range' => '11']]):
                 $stack = 'green';
                 break;
             case 12: // Le joker est le plus rare à piocher, car il y a moins de joker que d'autre cartes

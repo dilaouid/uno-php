@@ -59,6 +59,20 @@ class Room extends Lib {
     }
 
     /**
+    * Retourne si un salon est correctement formatté et existant ou non
+    *
+    * @param str $roomID Identifiant de la room
+    *
+    * @return boolean
+    */
+    public function checkRoom($roomID) {
+        if (strlen($roomID) != 13 || !$this->checkExistsRoom($roomID)) {
+            $this->sendError('404');
+        }
+    }
+
+
+    /**
     * Retourne si un salon existe ou non
     *
     * @param str $id Identifiant de la room
@@ -183,6 +197,37 @@ class Room extends Lib {
             }
         }
         return false;
+    }
+
+
+    /**
+    * Renvoie une erreur et bloque l'accès à la page
+    *
+    * @return null
+    *
+    */
+    public function sendError($httpcode)
+    {
+        $httpcode == '404' ? $header = 'HTTP/1.0 403 Forbidden' : $header = 'HTTP/1.0 404 Not Found';
+        header($header, true, $httpcode);
+        exit();
+    }
+
+
+    /**
+    * Vérifie si c'est bien au tour du joueur dont les cookies sont stockés en paramètre
+    *
+    * @param str $turnInfos Les infos du tour stockés dans la roomInfos
+    *
+    * @return boolean
+    *
+    */
+    public function checkTurn($turnInfos)
+    {
+        if ($turnInfos != $_COOKIE['player']) {
+            echo 'false';
+            exit();
+        }
     }
 
 }

@@ -10,17 +10,11 @@ $get = array_map("htmlspecialchars", $_GET);
 foreach ($get as $key => $value) {
     switch ($key) {
         case 'getInfoRoom':
-            if (strlen($value) != 13 || !$Room->checkExistsRoom($value)) {
-                echo '403';
-                exit();
-            } /* Si la room est invalide, retourner une erreur 403 */
-            $roomInfos = $Room->getInfos($value);
+
+            $roomInfos = checkRoom($value)->getInfos($value);
             $players = $Lib->decode($roomInfos['players'], 'players');
 
-            if (!$Room->inRoom($roomInfos)) {
-                echo '403';
-                exit();
-            }
+            $Room->inRoom($roomInfos) ? '' : $Room->sendError('403');
 
             $roomInfos['admin'] == $_COOKIE['player'] ? $admin = true : $admin = false;
             for ($i=0; $i < count($players); $i++) { 
@@ -35,26 +29,19 @@ foreach ($get as $key => $value) {
             } else {
                 $status = 0; // En attente de joueur
             }
-            $data = [
+            echo json_encode([
                 "name" => $value,
                 "players" => $players,
                 "status" => $status,
                 "admin" => $admin,
                 "online" => count($players)
-            ];
-            echo json_encode($data);
+            ]);
             exit();
             break;
         case 'expulse':
-            $value = explode('_', $value);
-
-            if (strlen($value[1]) != 13 || !$Room->checkExistsRoom($value[1])) {
-                echo '403';
-                exit();
-            } /* Si la room est invalide, retourner une erreur 403 */
-
-            $roomInfos = $Room->getInfos($value[1]);
-            $players = $Lib->decode($roomInfos['players'], 'players');
+            $value      = explode('_', $value);
+            $roomInfos  = checkRoom($value[1])->getInfos($value[1]);
+            $players    = $Lib->decode($roomInfos['players'], 'players');
 
             if ($roomInfos['admin'] == $_COOKIE['player']) {
                 unset($players[$value[0]]);
@@ -71,57 +58,39 @@ foreach ($get as $key => $value) {
             exit();
             break;
         case 'inRoom':
-            if (strlen($value) != 13 || !$Room->checkExistsRoom($value)) {
-                echo '403';
-                exit();
-            } /* Si la room est invalide, retourner une erreur 403 */
 
-            $roomInfos = $Room->getInfos($value);
+            $roomInfos = checkRoom($value)->getInfos($value);;
             $players = $Lib->decode($roomInfos['players'], 'players');
-            $ret = $Room->inRoom($roomInfos);
-            echo $ret;
+            echo $Room->inRoom($roomInfos);
             exit();
 
             break;
         case 'startRoom':
-            if (strlen($value) != 13 || !$Room->checkExistsRoom($value)) {
-                echo '403';
-                exit();
-            } /* Si la room est invalide, retourner une erreur 403 */
 
-            $roomInfos = $Room->getInfos($value);
+            $roomInfos = checkRoom($value)->getInfos($value);
             $players = $Lib->decode($roomInfos['players'], 'players');
             if ($roomInfos['admin'] == $_COOKIE['player'] && count($players) > 1) { // Seul l'admin peut lancer la partie
                 $Lib->updateCol('uno_room', ['nb_players', 'open', 'active', 'turn', 'msg'], "name = '$value'", [ count($players), 0, 1, $players[0]->cookie, "C'est au tour de {$players[0]->username} !" ]);
                 $Game = new \Uno\Game($DB, $value, $roomInfos);
-                $Game->shuffle();
-                $Game->drawCard(9);
+                $Game->shuffle()->drawCard(9);
                 echo 'true';
             } else {
                 echo 'false';
             }
-
             exit();
+            
             break;
         case 'getInfoGame':
-            if (strlen($value) != 13 || !$Room->checkExistsRoom($value)) {
-                echo '403';
-                exit();
-            } /* Si la room est invalide, retourner une erreur 403 */
 
-            $roomInfos = $Room->getInfos($value);
+            $roomInfos = checkRoom($value)->getInfos($value);
             $players = $Lib->decode($roomInfos['players'], 'players');
-            if (!$Room->inRoom($roomInfos)) {
-                echo '403';
-                exit();
-            } // Si le visiteur n'est pas dans la room, byebye
-
+            $Room->inRoom($roomInfos) ? '' : $Room->sendError('403');
             $hand       = [];
             $opponents  = [];
             $turn       = null;
             $lastCard   = $roomInfos['lastcard'];
 
-            $roomInfos['turn'] == $_COOKIE['player'] ? $yourTurn = true : $yourTurn = false;
+            $yourTurn = $roomInfos['turn'] == $_COOKIE['player'];
             foreach ($players as $key => $value) {
                 if ($value->cookie == $roomInfos['turn']) {
                     $turn = $value->id;
@@ -132,7 +101,7 @@ foreach ($get as $key => $value) {
                     $opponents[$key] = count($value->cards);
                 }
             }
-            $data = [
+            echo json_encode([
                 "hand"      => $hand,
                 "turn"      => $turn,
                 "your_turn" => $yourTurn,
@@ -142,29 +111,19 @@ foreach ($get as $key => $value) {
                 "nb"        => $roomInfos['nb'],
                 "msg"       => $roomInfos['msg'],
                 "effect"    => $roomInfos['effect']
-            ];
-            echo json_encode($data);
+            ]);
             exit();
             break;
         case 'playcard':
             $queryString = explode('%', $value);
-            $roomID = $queryString[0];
-            $cardname = $queryString[1];
+            $roomID     = $queryString[0];
+            $cardname   = urldecode($queryString[1]);
 
-            if (strlen($roomID) != 13 || !$Room->checkExistsRoom($roomID)) {
-                echo '403';
-                exit();
-            } /* Si la room est invalide, retourner une erreur 403 */
+            $roomInfos = $Room->checkRoom($value)->getInfos($roomID);
 
-            $cardname = urldecode($cardname);
-
-            $roomInfos = $Room->getInfos($roomID);
             $players = $Lib->decode($roomInfos['players'], 'players');
-            if (!$Room->inRoom($roomInfos)) {
-                echo '403';
-                exit();
-            } // Si le visiteur n'est pas dans la room, byebye
-
+            $Room->inRoom($roomInfos) ? '' : $Room->sendError('403');
+            
             if (in_array(substr($cardname, 0, 2), [' 2', ' 4'])) {
                 $cardname = '+' . trim($cardname);
             }
@@ -174,42 +133,18 @@ foreach ($get as $key => $value) {
                 echo 'false';
                 exit();
             }
-
             $Game = new \Uno\Game($DB, $value, $roomInfos);
             echo $Game->playCard($cardname);
-
             break;
+
         case 'draw':
-            if (strlen($value) != 13 || !$Room->checkExistsRoom($value)) {
-                echo '403';
-                exit();
-            } /* Si la room est invalide, retourner une erreur 403 */
-
-            $roomInfos = $Room->getInfos($value);
-            $players = $Lib->decode($roomInfos['players'], 'players');
-
-            if (!$Room->inRoom($roomInfos)) {
-                echo '403';
-                exit();
-            } // Si le visiteur n'est pas dans la room, byebye
-
-            if ($roomInfos['turn'] != $_COOKIE['player']) {
-                echo 'false';
-                exit();
-            }
-
-            $drawCount = 1;
-
-            if ($roomInfos['effect'] == 1) {
-                $drawCount = substr($roomInfos['lastcard'], 1, 2);
-            }
+            $roomInfos  = $Room->checkRoom($value)->getInfos($value);
+            $players    = $Lib->decode($roomInfos['players'], 'players');
+            $Room->inRoom($roomInfos) ? '' : $Room->sendError('403');
+            $Room->checkTurn();
+            $roomInfos['effect'] == 1 ? $drawCount = substr($roomInfos['lastcard'], 1, 2) : 1;
             $Game = new \Uno\Game($DB, $value, $roomInfos);
-            $index = $Game->getPlayerIndex();
-
-            $Game->drawCard($index, $drawCount);
-            $Game->updateTurnDB(null);
-
-            echo 'true';
+            echo $Game->drawCard($Game->getPlayerIndex(), $drawCount)->updateTurnDB(null);
 
             break;
         default:

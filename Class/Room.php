@@ -69,6 +69,7 @@ class Room extends Lib {
         if (strlen($roomID) != 13 || !$this->checkExistsRoom($roomID)) {
             $this->sendError('404');
         }
+        return $this;
     }
 
 

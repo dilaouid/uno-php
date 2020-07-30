@@ -69,8 +69,9 @@ foreach ($get as $key => $value) {
 
             break;
         case 'startRoom':
-
-            $roomInfos = $Room->checkRoom($value)->getInfos($value);
+            $Room->checkRoom($value);
+            $roomInfos = $Room->getInfos($value);
+            
             $players = $Lib->decode($roomInfos['players'], 'players');
             if ($roomInfos['admin'] == $_COOKIE['player'] && count($players) > 1) { // Seul l'admin peut lancer la partie
                 $Lib->updateCol('uno_room', ['nb_players', 'open', 'active', 'turn', 'msg'], "name = '$value'", [ count($players), 0, 1, $players[0]->cookie, "C'est au tour de {$players[0]->username} !" ]);
@@ -87,7 +88,11 @@ foreach ($get as $key => $value) {
 
             $roomInfos = $Room->checkRoom($value)->getInfos($value);
             $players = $Lib->decode($roomInfos['players'], 'players');
-            $Room->inRoom($roomInfos) ? '' : $Room->sendError('403');
+            
+            if (!$Room->inRoom($roomInfos)) {
+                $Room->sendError('403');
+            }
+            
             $hand       = [];
             $opponents  = [];
             $turn       = null;
@@ -125,7 +130,9 @@ foreach ($get as $key => $value) {
             $roomInfos = $Room->checkRoom($roomID)->getInfos($roomID);
 
             $players = $Lib->decode($roomInfos['players'], 'players');
-            $Room->inRoom($roomInfos) ? '' : $Room->sendError('403');
+            if (!$Room->inRoom($roomInfos)) {
+                $Room->sendError('403');
+            }
             
             if (in_array(substr($cardname, 0, 2), [' 2', ' 4'])) {
                 $cardname = '+' . trim($cardname);
@@ -143,7 +150,9 @@ foreach ($get as $key => $value) {
         case 'draw':
             $roomInfos  = $Room->checkRoom($value)->getInfos($value);
             $players    = $Lib->decode($roomInfos['players'], 'players');
-            $Room->inRoom($roomInfos) ? '' : $Room->sendError('403');
+            if (!$Room->inRoom($roomInfos)) {
+                $Room->sendError('403');
+            }
             $Room->checkTurn($roomInfos['turn']);
             $roomInfos['effect'] == 1 ? $drawCount = substr($roomInfos['lastcard'], 1, 2) : $drawCount = 1;
             $Game = new \Uno\Game($DB, $value, $roomInfos);

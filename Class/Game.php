@@ -44,6 +44,7 @@ class Game extends Room {
                 $this->drawCard($key);
             }
         }
+        return $this;
 
     }
 
@@ -155,8 +156,8 @@ class Game extends Room {
         &&  count($this->deck['joker']) == 0) {
             $this->reShuffle();
         }
-        $playerid == 9 ? $stack = rand(0, 11) : $stack = rand(0, 12);
-        switch ($stack) {
+        $playerid == 9 ? $rand = rand(0, 11) : $rand = rand(0, 12);
+        switch ($rand) {
             case filter_var($rand, FILTER_VALIDATE_INT, ['options' => ['min_range' => '0', 'max_range' => '2']]):
                 $stack = 'red';
                 break;
@@ -208,7 +209,7 @@ class Game extends Room {
         $turn       = $this->isSkipCard($cardName);               // Facteur du calcul pour le prochain tour
         $turnover   = $this->isReveCard($cardName);               // Le turnover de la partie
         $index      = $this->getPlayerIndex();                    // L'index du joueur
-        $uno        = (int) $this->Uno($this->players[$index]);   // Vérification si le joueur n'a plus qu'une carte en main
+        $uno        = (int) !$this->Uno($this->players[$index]);   // Vérification si le joueur n'a plus qu'une carte en main
         $this->getActivePlayers();                                // Recupere les joueurs actifs de la partie
         
         $nextplayer = $this->getNextTurnPlayer($index, $turn, $turnover);
@@ -397,7 +398,7 @@ class Game extends Room {
     */
     public function Uno($player)
     {
-        return !count($player->cards) > 1;
+        return count($player->cards) > 1;
     }
 
     /**

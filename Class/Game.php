@@ -69,9 +69,7 @@ class Game extends Room {
             }
             $this->removeFromDeck(explode('_', $card)[0], $stack);
         }
-        if ($this->roomInfos['effect'] == 1) {
-            $this->roomInfos['effect'] = 0;
-        }
+        $this->roomInfos['effect'] = 0;
         $this->updateDrawCard();
     }
 
@@ -85,6 +83,7 @@ class Game extends Room {
             if ($value == $deckplayer) {
                 unset($this->deck[$stack][$key]);
                 $this->deck[$stack] = array_values($this->deck[$stack]);
+                return true;
             }
         }
     }
@@ -136,7 +135,7 @@ class Game extends Room {
     private function getActivePlayers()
     {
         foreach ($this->players as $key => $value) {
-            if (count($value->cards) > 0) {
+            if (count($value->cards) > 0 && !in_array($value, $this->activePlayers)) {
                 array_push($this->activePlayers, $value);
             }
         }
@@ -317,10 +316,7 @@ class Game extends Room {
     private function isDrawCard($cardname)
     {
         $cardnameSplit = explode(',', $cardname)[0];
-        if (in_array(substr($cardname, 0, 2), ['+2', '+4'])) {
-            return TRUE;
-        }
-        return FALSE;
+        return in_array(substr($cardname, 0, 2), ['+2', '+4']);
     }
     
 
@@ -350,10 +346,7 @@ class Game extends Room {
     private function isReveCard($cardname)
     {
         $cardnameSplit = explode(',', $cardname)[0];
-        if (substr($cardname, 0, 1) == 'r') {
-            return 0;
-        }
-        return 1;
+        return substr($cardname, 0, 1) != 'r';
     }
 
     /**
@@ -365,7 +358,7 @@ class Game extends Room {
     */
     private function isSpecialCard($cardName)
     {
-        return      $this->isReveCard($card) == 0
+        return      $this->isReveCard($card)
                 ||  $this->isSkipCard($card) == 1
                 ||  $this->isDrawCard($card);
     }
@@ -403,10 +396,7 @@ class Game extends Room {
     */
     public function Uno($player)
     {
-        if (count($player->cards) > 1) {
-            return FALSE;
-        }
-        return TRUE;
+        return !count($player->cards) > 1;
     }
 
     /**

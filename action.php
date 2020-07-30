@@ -30,11 +30,11 @@ foreach ($get as $key => $value) {
                 $status = 0; // En attente de joueur
             }
             echo json_encode([
-                "name" => $value,
-                "players" => $players,
-                "status" => $status,
-                "admin" => $admin,
-                "online" => count($players)
+                "name"      => $value,
+                "players"   => $players,
+                "status"    => $status,
+                "admin"     => $admin,
+                "online"    => count($players)
             ]);
             exit();
             break;

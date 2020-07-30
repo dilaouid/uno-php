@@ -22,7 +22,6 @@ if (!$Room->inRoom($roomInfos)) {
 }
 
 $roomInfos['players'] = $Lib->decode($roomInfos['players'], 'players');
-$page = file_get_contents($URL . 'action.php?getInfoRoom=' . $roomID);
 
 $roomInfos['admin'] == $_COOKIE['player'] ? $admin = true : $admin = false;
 

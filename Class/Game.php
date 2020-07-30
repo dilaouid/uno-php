@@ -123,7 +123,8 @@ class Game extends Room {
             if ($value->cookie == $_COOKIE['player']) {
                 unset($value->cards[array_search($cardnameSplit, $value->cards)]);
                 $this->players[$key]->cards = array_values($value->cards);
-                return $this->updateTurnDB($cardname);
+                $this->updateTurnDB($cardname);
+                return true;
             }
         }
     }

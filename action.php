@@ -11,10 +11,13 @@ foreach ($get as $key => $value) {
     switch ($key) {
         case 'getInfoRoom':
 
-            $roomInfos = checkRoom($value)->getInfos($value);
+            $Room->checkRoom($value);
+            $roomInfos = $Room->getInfos($value);
             $players = $Lib->decode($roomInfos['players'], 'players');
 
-            $Room->inRoom($roomInfos) ? '' : $Room->sendError('403');
+            if (!$Room->inRoom($roomInfos)) {
+                $Room->sendError('403');
+            }
 
             $roomInfos['admin'] == $_COOKIE['player'] ? $admin = true : $admin = false;
             for ($i=0; $i < count($players); $i++) { 
@@ -40,7 +43,7 @@ foreach ($get as $key => $value) {
             break;
         case 'expulse':
             $value      = explode('_', $value);
-            $roomInfos  = checkRoom($value[1])->getInfos($value[1]);
+            $roomInfos = $Room->checkRoom($value)->getInfos($value);
             $players    = $Lib->decode($roomInfos['players'], 'players');
 
             if ($roomInfos['admin'] == $_COOKIE['player']) {
@@ -59,7 +62,7 @@ foreach ($get as $key => $value) {
             break;
         case 'inRoom':
 
-            $roomInfos = checkRoom($value)->getInfos($value);;
+            $roomInfos = $Room->checkRoom($value)->getInfos($value);
             $players = $Lib->decode($roomInfos['players'], 'players');
             echo $Room->inRoom($roomInfos);
             exit();
@@ -67,7 +70,7 @@ foreach ($get as $key => $value) {
             break;
         case 'startRoom':
 
-            $roomInfos = checkRoom($value)->getInfos($value);
+            $roomInfos = $Room->checkRoom($value)->getInfos($value);
             $players = $Lib->decode($roomInfos['players'], 'players');
             if ($roomInfos['admin'] == $_COOKIE['player'] && count($players) > 1) { // Seul l'admin peut lancer la partie
                 $Lib->updateCol('uno_room', ['nb_players', 'open', 'active', 'turn', 'msg'], "name = '$value'", [ count($players), 0, 1, $players[0]->cookie, "C'est au tour de {$players[0]->username} !" ]);
@@ -82,7 +85,7 @@ foreach ($get as $key => $value) {
             break;
         case 'getInfoGame':
 
-            $roomInfos = checkRoom($value)->getInfos($value);
+            $roomInfos = $Room->checkRoom($value)->getInfos($value);
             $players = $Lib->decode($roomInfos['players'], 'players');
             $Room->inRoom($roomInfos) ? '' : $Room->sendError('403');
             $hand       = [];
@@ -119,7 +122,7 @@ foreach ($get as $key => $value) {
             $roomID     = $queryString[0];
             $cardname   = urldecode($queryString[1]);
 
-            $roomInfos = $Room->checkRoom($value)->getInfos($roomID);
+            $roomInfos = $Room->checkRoom($roomID)->getInfos($roomID);
 
             $players = $Lib->decode($roomInfos['players'], 'players');
             $Room->inRoom($roomInfos) ? '' : $Room->sendError('403');
@@ -134,18 +137,18 @@ foreach ($get as $key => $value) {
                 exit();
             }
             $Game = new \Uno\Game($DB, $value, $roomInfos);
-            echo $Game->playCard($cardname);
+            $Game->playCard($cardname);
             break;
 
         case 'draw':
             $roomInfos  = $Room->checkRoom($value)->getInfos($value);
             $players    = $Lib->decode($roomInfos['players'], 'players');
             $Room->inRoom($roomInfos) ? '' : $Room->sendError('403');
-            $Room->checkTurn();
-            $roomInfos['effect'] == 1 ? $drawCount = substr($roomInfos['lastcard'], 1, 2) : 1;
+            $Room->checkTurn($roomInfos['turn']);
+            $roomInfos['effect'] == 1 ? $drawCount = substr($roomInfos['lastcard'], 1, 2) : $drawCount = 1;
             $Game = new \Uno\Game($DB, $value, $roomInfos);
-            echo $Game->drawCard($Game->getPlayerIndex(), $drawCount)->updateTurnDB(null);
-
+            echo $Game->drawCard($Game->getPlayerIndex(), $drawCount);
+            $Game->updateTurnDB(null);
             break;
         default:
             echo 'Salut :-)'; // Easter egg

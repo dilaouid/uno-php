@@ -162,10 +162,10 @@ class Room extends Lib {
         $roomInfos['players'] = $this->decode($roomInfos['players'], 'players');
         foreach ($roomInfos['players'] as $key => $value) {
             if ($value->cookie == $_COOKIE['player']) {
-                return 1;
+                return TRUE;
             }
         }
-        return 0; 
+        return FALSE; 
     }
 
     /**

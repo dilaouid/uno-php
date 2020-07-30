@@ -18,9 +18,9 @@ foreach ($get as $key => $value) {
 
             $roomInfos['admin'] == $_COOKIE['player'] ? $admin = true : $admin = false;
             for ($i=0; $i < count($players); $i++) { 
-                unset($players[$i]->cards);
-                unset($players[$i]->cookie);
-                unset($players[$i]->admin);
+                unset($players[$i]->cards,
+                      $players[$i]->cookie, 
+                      $players[$i]->admin);
             } /* Supprime les informations sensibles de la réponse JSON */
             if ($roomInfos['active'] == 1) {
                 $status = 2; // La partie peut commencer !!
@@ -78,7 +78,7 @@ foreach ($get as $key => $value) {
                 echo 'false';
             }
             exit();
-            
+
             break;
         case 'getInfoGame':
 

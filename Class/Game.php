@@ -199,66 +199,56 @@ class Game extends Room {
     * @param str $cardName Le nom de la carte à jouer (null si le joueur pioche)
     *
     */
-    public function updateTurnDB($cardName)
+    public function updateTurnDB($cardName, $forcePass = false)
     {
 
         // Si ce n'est pas à notre tour de jouer, on ne fais rien !
-        if (!$this->yourTurn()) { return; }
+        if (!$this->yourTurn() && $this->roomInfos['uno'] != 2) { return; }
 
         $effect     = (int) $this->isDrawCard($cardName);         // Effet à appliquer sur la partie
         $turn       = $this->isSkipCard($cardName);               // Facteur du calcul pour le prochain tour
         $turnover   = $this->isReveCard($cardName);               // Le turnover de la partie
         $index      = $this->getPlayerIndex();                    // L'index du joueur
-        $uno        = (int) !$this->Uno($this->players[$index]);   // Vérification si le joueur n'a plus qu'une carte en main
+        $uno        = (int) !$this->Uno($this->players[$index]);  // Vérification si le joueur n'a plus qu'une carte en main
         $this->getActivePlayers();                                // Recupere les joueurs actifs de la partie
         
-        $nextplayer = $this->getNextTurnPlayer($index, $turn, $turnover);
+        if ($this->roomInfos['uno'] === 2) {
+            $this->drawCard($index, 2);
+            $uno = 0;
+        } else if (count($this->players[$index]->cards) == 0) {
+            $uno = 0;
+        }
 
-        if ((count($this->activePlayers) == 2 && ($turnover == 0 || $turn == 2)) || $uno == 1) {
-            $nextTurn       = $this->players[$index]->cookie;
-            $nextUsername   = $this->players[$index]->username;
+        if ((count($this->activePlayers) == 2 && ($turnover == 0 || $turn == 2)) || $uno == 1 && !$forcePass) {
+            $nextplayer = $this->players[$index];
         } else {
-            $nextTurn       = $nextplayer->cookie;
-            $nextUsername   = $nextplayer->username;
-        } // Définit le prochain joueur
+            $nextplayer = $this->getNextTurnPlayer($index, $turn, $turnover);
+        }
 
         if ($cardName == null) {
-            $cardName = $this->roomInfos['lastcard'];
+            $cardName   = $this->roomInfos['lastcard'];
         } // Si le joueur pioche et ne joue pas, la lastcard ne change pas
 
         // ATTRIBUTION DU MESSAGE
-        if ($effect == 1) {
-            $msg = "Ouille ... ça va faire mal pour {$nextplayer->username} !!";
-        } else if ($turnover == 0) {
-            $msg = "Allez hop, on retourne tout !";
-        } else if ($uno == 1) {
-            $msg = "Hop, le mot magique ?! :-)";
-        } else if ($this->isJoker($this->roomInfos['lastcard']) || $this->isJoker($cardName)) {
-            if ($this->isJoker($cardName)) {
-                $color = strtoupper(explode(',', $cardName)[1]);
-            } else {
-                $color = strtoupper(explode(',', $this->roomInfos['lastcard'])[1]);
-            }
-            $msg = 'On annonce ça ... en ' . $color . '!';
-        } else {
-            $msg = "Au tour de {$nextUsername} !";
-        } // :-)
-        //////
+        $msg = $this->getMessage($effect, $uno, $turnover, $cardName, $nextplayer);
 
-        $nb = $this->roomInfos['nb'] + 1;               // Passage au tour suivant
-        $decodePlayers = json_encode($this->players);
-        $playersDB = '{
-            "players": '
-                    . $decodePlayers .
-            '}';
+        $nb             = $this->roomInfos['nb'] + 1;   // Passage au tour suivant
+        $decodePlayers  = json_encode($this->players);
+        $playersDB      = '{
+                        "players": '
+                                . $decodePlayers .
+                        '}';
         $pileDB = ( json_encode( $this->pile ) );
         $deckDB = ( json_encode( $this->deck ) );
 
-        $this->updateCol(   'uno_room',
-                            ['players', 'lastcard', 'deck', 'pile', 'turn', 'turnover', 'nb', 'msg', 'uno', 'effect'],
-                            "name = '{$this->roomID}'",
-                            [ $playersDB, $cardName, $deckDB, $pileDB, $nextTurn, $this->roomInfos['turnover'], $nb, $msg, $uno, $effect ], false);
-        return true;
+        $nextplayer == null ? $cookie = null : $cookie = $nextplayer->cookie;
+        
+        return  $this->updateCol('uno_room', // TABLE
+                                ['players', 'lastcard', 'deck', 'pile', 'turn', 'turnover', 'nb', 'msg', 'uno', 'effect'],  // COLS  
+                                "name = '{$this->roomID}'", // CDT
+                                [ $playersDB, $cardName, $deckDB, $pileDB, $nextplayer->cookie, $this->roomInfos['turnover'], $nb, $msg, $uno, $effect ], // VALUE
+                                false // PROTECT
+                                );
     }
     
     /**
@@ -298,6 +288,12 @@ class Game extends Room {
         $this->updateCol('uno_room', ['pile', 'players', 'deck'], "name = '{$this->roomID}'", [$pileDB, $playersDB, $deckDB], false);
     }
 
+    public function updateUnoStatus()
+    {
+        $this->roomInfos['turn'] == $_COOKIE['player'] ? $this->roomInfos['uno'] = 0 : $this->roomInfos['uno'] = 2;
+        $this->updateTurnDB(null, true);
+    }
+
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
                     //////////////////////////////////////////////////////////
@@ -317,6 +313,7 @@ class Game extends Room {
     */
     private function isDrawCard($cardname)
     {
+        if ($this->roomInfos['uno'] == 1) { return false; }
         $cardnameSplit = explode(',', $cardname)[0];
         return in_array(substr($cardname, 0, 2), ['+2', '+4']);
     }
@@ -398,7 +395,7 @@ class Game extends Room {
     */
     public function Uno($player)
     {
-        return count($player->cards) > 1;
+        return count($player->cards) > 1 && $this->roomInfos['uno'] != 2;
     }
 
     /**
@@ -437,6 +434,29 @@ class Game extends Room {
 //////////////////////////////////////////////////////////////////////////////
 
 
+    private function getMessage($effect, $uno, $turnover, $cardName, $nextplayer)
+    {
+        if (count($this->activePlayers) == 1) {
+            return "Fin de la partie !";
+        }
+        if ($uno == 1) {
+            return "Hop, le mot magique ?! :-)";
+        } else if ($turnover == 0) {
+            return "Allez hop, on retourne tout !";
+        } else if ($effect == 1) {
+            return "Ouille ... ça va faire mal pour {$nextplayer->username} !!";
+        } else if ($this->isJoker($this->roomInfos['lastcard']) || $this->isJoker($cardName)) {
+            if ($this->isJoker($cardName)) {
+                $color = strtoupper(explode(',', $cardName)[1]);
+            } else {
+                $color = strtoupper(explode(',', $this->roomInfos['lastcard'])[1]);
+            }
+            return 'On annonce ça ... en ' . $color . '!';
+        } else {
+            return "Au tour de {$nextplayer->username} !";
+        } // :-)
+    }
+    
     /**
     * Retourne l'index du joueur
     *
@@ -484,14 +504,15 @@ class Game extends Room {
     /**
     * Récupère le prochain joueur
     *
-    * @param number $index index du joueur actuel
-    * @param number $turn Facteur de calcul pour le prochain joueur (prochain, ou sur-prochain)
-    * @param number $turnover Tour horaire ou antihoraire de la partie
+    * @param number $index      Index du joueur actuel dans le tableau des joueurs actifs
+    * @param number $turn       Facteur de calcul pour le prochain joueur (prochain, ou sur-prochain)
+    * @param number $turnover   Tour horaire ou antihoraire de la partie
     *
     * @return object Retourne le prochain joueur
     */
     private function getNextTurnPlayer($index, $turn, $turnover)
     {
+        if (count($this->activePlayers) == 1) { return null; }
         if ($turnover == 0) {
             $turnover = ($this->roomInfos['turnover'] == 0 ? 1 : 0);
             $this->roomInfos['turnover'] = $turnover;
@@ -508,5 +529,6 @@ class Game extends Room {
         }
         return current($this->activePlayers);
     }
+
 
 }

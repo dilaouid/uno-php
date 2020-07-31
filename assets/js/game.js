@@ -1,4 +1,5 @@
 const   url     = 'http://localhost/';
+/* const url = 'https://dilaouid.xyz/uno/'; */
 const   roomID  = getQueryVariable('id');
 var     nb      = -1;
 
@@ -29,6 +30,7 @@ function fillYourHand(hand, your_turn, effect)
 
         imgCardHand.className = 'shadow-lg card-hand';
         imgCardHand.src       = `assets/img/cards/${card[1]}/${card[0]}.png`;
+        imgCardHand.id        = el;
         if (your_turn === true && effect == false) {
             imgCardHand.setAttribute('onclick', `play('${el}')`)
         }
@@ -64,6 +66,7 @@ function playcard(cardname)
                 console.log('Il n\'est pas possible de jouer cette carte pour le moment!... Tricheur? :-)');
             } else {
                 playSound(playi)
+                document.getElementById(cardname).remove();
                 Array.from(hand).forEach(el => {
                     el.removeAttribute('onclick');
                 });
@@ -112,7 +115,7 @@ function pickColor(effect, color)
  */
 function showColorChoice(effect)
 {
-    document.getElementById('pioche').classList.add('d-none');
+    hideEl(['pioche']);
     let choiceColors = {
         0: 'red',
         1: 'green',
@@ -160,12 +163,8 @@ function play(cardname)
                 // Si la carte jouée n'est ni un joker, ni la couleur annoncée
                 return ;
             }
-            if (joker == true) {
-                showColorChoice(playedcard[0])
-                return ;
-            } else {
-                playcard(cardname);
-            }
+            joker == true ? showColorChoice(playedcard[0]) : playcard(cardname);
+            return;
         },
     });
 }
@@ -237,6 +236,35 @@ function fillPlayersHand(opp)
     });
 }
 
+function showEl(arr)
+{
+    arr.forEach(el => {
+        document.getElementById(el).classList.remove('d-none');
+    });
+}
+
+function hideEl(arr)
+{
+    arr.forEach(el => {
+        document.getElementById(el).classList.add('d-none');
+    });
+}
+
+function uno()
+{
+    let queryURL = url + 'action.php?uno=' + roomID;
+    var self = this;
+    $.ajax({
+        url         :   queryURL,
+        dataType    :   "JSON",
+        type        :   "GET",
+        success     :   function( res ) {
+            if (!res) { console.log('Tricheur'); }
+            hideEl(['contreUno', 'Uno']);
+        }
+    });
+}
+
 setInterval(function()
 {
     let queryURL = url + 'action.php?getInfoGame=' + roomID;
@@ -247,10 +275,15 @@ setInterval(function()
         type        :   "GET",
         success     :   function( res ) {
             if (nb === res.nb) { return; } // Si on n'a pas changé de tour, pas besoin de manipuler le DOM
+            if (res.uno == true) {
+                hideEl(['pioche']);
+                res.your_turn ? showEl(['Uno']) : showEl(['contreUno']);
+                return ;
+            }
+            hideEl(['contreUno', 'Uno']);
             let printableLastCard = res.lastcard.split(',')[0];
             nb = res.nb;
             hideOngoing(); // On cache les spinners
-            let pioche = document.getElementById('pioche');
             if (res.your_turn === true) {
                 let cursedCars = ['+2', '+4'];
                 let printableLast_split = printableLastCard.split('_')[0]
@@ -259,10 +292,10 @@ setInterval(function()
                 } else {
                     document.getElementById('nbDraw').innerHTML = '';
                 }
-                pioche.classList.remove('d-none');
+                showEl(['pioche']);
             } else {
-                pioche.classList.add('d-none');
-                document.getElementById('ongoing_' + res.turn).classList.remove('d-none');
+                hideEl(['pioche']);
+                showEl(['ongoing_' + res.turn]);
                 Array.from(hand).forEach(ele => {
                     ele.removeAttribute('onclick');
                 });

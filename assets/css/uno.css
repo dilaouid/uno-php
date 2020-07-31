@@ -15,12 +15,23 @@
     margin-right: 70px;
 }
 
-.btnPioche {
+.btnRight {
     width: 413px;
-    background: url('../img/uno_bg.png') center / cover no-repeat;
     height: 86px;
     font-size: 27px;
     text-shadow: 3px 5px 12px rgb(0,0,0);
+}
+
+.btnPioche {
+    background: url('../img/uno_bg.png') center / cover no-repeat;
+}
+
+.btnContreUno {
+    background: url('../img/modalHeader.png') center / cover no-repeat;
+}
+
+.btnUno {
+    background: url('../img/greenBtn.png') center / cover no-repeat;
 }
 
 .abc {

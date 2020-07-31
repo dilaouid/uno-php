@@ -58,11 +58,31 @@
         <div class="row no-gutters d-none" id="pioche" style="margin-right: 75%;">
             <div class="col">
                 <!-- ICI LE BOUTON POUR PIOCHER -->
-                <button class="btn btn-danger btn-lg btnPioche" data-bs-hover-animate="pulse" type="button" onclick="draw()">
+                <button class="btn btn-danger btn-lg btnRight btnPioche" data-bs-hover-animate="pulse" type="button" onclick="draw()">
                     <strong>PIOCHE <span id="nbDraw"></span></strong>
                 </button>
             </div>
         </div>
+
+
+            <div class="row no-gutters d-none" style="margin-right: 75%;" id="contreUno">
+                <div class="col">
+                    <!-- CONTRE UNO BTN -->
+                    <button class="btn btn-danger btn-lg btnRight btnContreUno" data-bs-hover-animate="pulse" type="button" onclick="uno()">
+                        <strong>CONTRE UNO</strong>
+                    </button>
+                </div>
+            </div>
+        
+
+            <div class="row no-gutters d-none" style="margin-right: 75%;" id="Uno">
+                <div class="col">
+                    <!-- UNO BTN -->
+                    <button class="btn btn-danger btn-lg btnRight btnUno" data-bs-hover-animate="pulse" type="button" onclick="uno()">
+                        <strong>UNO</strong>
+                    </button>
+                </div>
+            </div>
 
         <div class="row no-gutters d-none" style="margin-right: 75%;" name="pickcolor">
             <div class="col">

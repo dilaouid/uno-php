@@ -11,9 +11,8 @@ foreach ($get as $key => $value) {
     switch ($key) {
         case 'getInfoRoom':
 
-            $Room->checkRoom($value);
-            $roomInfos = $Room->getInfos($value);
-            $players = $Lib->decode($roomInfos['players'], 'players');
+            $roomInfos  = $Room->checkRoom($value)->getInfos($value);
+            $players    = $Lib->decode($roomInfos['players'], 'players');
 
             if (!$Room->inRoom($roomInfos)) {
                 $Room->sendError('403');
@@ -43,7 +42,7 @@ foreach ($get as $key => $value) {
             break;
         case 'expulse':
             $value      = explode('_', $value);
-            $roomInfos = $Room->checkRoom($value)->getInfos($value);
+            $roomInfos  = $Room->checkRoom($value)->getInfos($value);
             $players    = $Lib->decode($roomInfos['players'], 'players');
 
             if ($roomInfos['admin'] == $_COOKIE['player']) {
@@ -98,7 +97,7 @@ foreach ($get as $key => $value) {
             $turn       = null;
             $lastCard   = $roomInfos['lastcard'];
 
-            $yourTurn = $roomInfos['turn'] == $_COOKIE['player'];
+            $yourTurn   = $roomInfos['turn'] == $_COOKIE['player'];
             foreach ($players as $key => $value) {
                 if ($value->cookie == $roomInfos['turn']) {
                     $turn = $value->id;
@@ -146,7 +145,6 @@ foreach ($get as $key => $value) {
             $Game = new \Uno\Game($DB, $value, $roomInfos);
             $Game->playCard($cardname);
             break;
-
         case 'draw':
             $roomInfos  = $Room->checkRoom($value)->getInfos($value);
             $players    = $Lib->decode($roomInfos['players'], 'players');
@@ -158,6 +156,18 @@ foreach ($get as $key => $value) {
             $Game = new \Uno\Game($DB, $value, $roomInfos);
             echo $Game->drawCard($Game->getPlayerIndex(), $drawCount);
             $Game->updateTurnDB(null);
+            break;
+        case 'uno':
+            $roomInfos = $Room->checkRoom($value)->getInfos($value);
+            $players = $Lib->decode($roomInfos['players'], 'players');
+            
+            if (!$Room->inRoom($roomInfos)) {
+                $Room->sendError('403');
+            }
+            if ($roomInfos['uno'] == 0) { return; }
+            $Game = new \Uno\Game($DB, $value, $roomInfos);
+            $Game->updateUnoStatus();
+            echo 'true';
             break;
         default:
             echo 'Salut :-)'; // Easter egg

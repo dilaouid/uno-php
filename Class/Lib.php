@@ -104,6 +104,7 @@ class Lib {
         } else {
             $query = $this->db->query($statement);
         }
+        return true;
     }
 
     /**
